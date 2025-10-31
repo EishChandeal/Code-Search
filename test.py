@@ -1,13 +1,20 @@
 from sentence_transformers import SentenceTransformer
-# Use a pipeline as a high-level helper
-from transformers import pipeline
+from transformers import AutoTokenizer, AutoModel
+import torch
 
-pipe = pipeline("feature-extraction", model="microsoft/codebert-base")
-# from transformers import AutoTokenizer, AutoModel
-# import torch
-# tokenizer = AutoTokenizer.from_pretrained("microsoft/codebert-base")
-# model = AutoModel.from_pretrained("microsoft/codebert-base")
+print("Started execution... \n\n")
+snip = "def max(a,b): if a>b: return a else return b"
 
-print(pipe("def max(a,b): if a>b: return a else return b"))
+try:
+    tokenizer = AutoTokenizer.from_pretrained("microsoft/codebert-base")
+    model = AutoModel.from_pretrained("microsoft/codebert-base")
 
-print("Mic testing..")
+    code_tokens = tokenizer.tokenize(snip)
+    code_token_ids = tokenizer.convert_tokens_to_ids(code_tokens)
+    context_embeddings=model(torch.tensor(code_token_ids)[None,:])[0]
+
+    print(context_embeddings)
+except Exception as e:
+    print(f"Error occured: {e}")
+
+print("execution complete!")
