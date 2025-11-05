@@ -1,32 +1,60 @@
 from sentence_transformers import SentenceTransformer
 from transformers import AutoTokenizer, AutoModel
 import torch
+import chromadb
 
 print("Started execution... \n\n")
-snip = "def max(a,b): if a>b: return a else return b"
+snips = ["def max(a,b): if a>b: return a else return b", 
+         "function toCelsius(fahrenheit) {return (5/9) * (fahrenheit - 32);}",
+         "func add(a, b int) int {return a + b}",
+         "def greet(name):return f'Hello, {name}!'"]
 
 try:
-    tokenizer = AutoTokenizer.from_pretrained("microsoft/codebert-base")
-    model = AutoModel.from_pretrained("microsoft/codebert-base")
+    # This model is specifically for retrieval. `trust_remote_code=True` is required.
+    model = SentenceTransformer("nomic-ai/nomic-embed-text-v1.5", trust_remote_code=True)
 
-    # tokenized snippets
-    code_tokens = tokenizer.tokenize(snip)
+    # Nomic models work best if you add a "task prefix".
+    prefixed_snips = ["search_document: " + snip for snip in snips]
 
-    # converted tokens into a numerical form
-    code_token_ids = tokenizer.convert_tokens_to_ids(code_tokens)
+    # both sentence_transformers and chromadb are optimized to work on batches
+    print("Generating embeddings..")
+    embeddings = model.encode(prefixed_snips)
+    print(f"Generated {len(embeddings)} embeddings.")
 
-    # Transformers expect their input to be in 2d form
-    # These embeddings come from a giant lookup table (laymen) and ids are
-    # positions from where definitions are fetched. 12 layers of attention
-    # codebert has which makes highly contextualized embeddings
-    context_embeddings=model(torch.tensor(code_token_ids)[None,:])[0]
+    # just preparing example metadata that can be added into chromadb for testing:
+    ids = [f"func_{i}" for i in range(len(snips))]
+    metadatas = [{"File": f"func_{i}", "language": "python", "lines": 2} for i in range(len(snips))]
 
-    # Pooling. Replacing a 2d vector with one mean value.
-    # Token dimensions and batch dimenstions to be kept in mind 
-    # from [1, 17, 768] -> [1, 768], ([batch dim, token dim, semantic coordinates])
-    mean_emd = torch.mean(context_embeddings, dim=1)
-    print(mean_emd)
-    
+    # est. connection with chroma
+    client = chromadb.PersistentClient(path="code_db")
+
+    # Use get_or_create_collection to avoid errors on subsequent runs
+    collection = client.get_or_create_collection("codebase_search")
+
+    collection.add(
+        ids = ids,
+        embeddings = embeddings.tolist(),
+        documents = snips,
+        metadatas = metadatas
+    )
+
+    print("Snippets store in chromaDB.")
+
+
+    # test implementation of user natural language "search engine"
+    user_query = "a function that can tell me how hot I am feeling right now"
+    print(f"Searching for: '{user_query}'")
+    query_embedding = model.encode("search_query: " + user_query)
+
+    results = collection.query(
+        query_embeddings=[query_embedding.tolist()],
+        n_results=2
+    ) # can make the output more detailed look at docs
+
+    print("\n--- Search Results ---")
+    print(results)
+
+        
 except Exception as e:
     print(f"Error occured: {e}")
 
