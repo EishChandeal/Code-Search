@@ -31,7 +31,7 @@ try:
     # Use get_or_create_collection to avoid errors on subsequent runs
     collection = client.get_or_create_collection("codebase_search")
 
-    collection.add(
+    collection.upsert(
         ids = ids,
         embeddings = embeddings.tolist(),
         documents = snips,
