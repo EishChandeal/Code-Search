@@ -80,5 +80,5 @@ if query:
                     with st.container(border= True):    
                         st.markdown(f"**File.** '{file_path}'")
                         st.markdown(f"**Relevance score: ** {dist:.4f} ")
-                        st.markdown(f"**Rank: ** {j} **For query: ** {i}")
+                        st.markdown(f"**Rank: ** {j+1} **For query: ** {i+1}")
                         st.code(per_query_doc,language=lang)
