@@ -3,7 +3,7 @@ from parser import parse_files
 
 Supported_extensions = ('.py', '.java', '.js', '.go', '.rb', '.php')
 
-def build_index(code_dir, db_collection):
+def build_index(code_dir, db_collection, embedding_model):
     print(f"starting to index: {code_dir}")
 
     all_chunks = []
@@ -29,9 +29,17 @@ def build_index(code_dir, db_collection):
 
         if (all_chunks):
             print(f"Adding {len(all_chunks)} chunks from {file_count} files to the index...")
+
+            # creating embeddings:
+            prefixed_chunks = ["search_documents: " + chunk for chunk in all_chunks]
+            print("\n Generating embeddings for: ", len(all_chunks), "Wait for a moment ...")
+            all_embeddings = embedding_model.encode(prefixed_chunks, show_progress_bar = True).tolist()
+            print("\n -- Embeddings generated --")
+
             batch_size = 1000
             for i in range(0, len(all_chunks), batch_size):
                 db_collection.upsert(
+                    embeddings = all_embeddings[i : i+batch_size],
                     documents = all_chunks[i : i+batch_size],
                     metadatas = all_metadatas[i : i+batch_size],
                     ids = all_ids[i: i+batch_size]
