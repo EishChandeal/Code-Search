@@ -104,10 +104,18 @@ cd code_search
 poetry install
 ```
 
-Activate the virtual environment:
+**Activate the virtual environment:**
 
+more info on your current env
 ```bash
-poetry shell
+poetry env info
+poetry env list
+poetry env use <env name>
+```
+
+**Activating the env:**
+```bash
+Invoke-Expression (poetry env activate)
 ```
 
 ---
@@ -177,3 +185,4 @@ Planned improvements include:
 - **Production-Grade Enhancements:** Improve reliability, performance, and maintainability
 
 > Built for developers who want to understand and navigate large codebases — fast.
+
