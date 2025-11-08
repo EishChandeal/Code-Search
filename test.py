@@ -42,23 +42,31 @@ try:
 
 
     # test implementation of user natural language "search engine"
-    user_query = "a function that can tell me how hot I am feeling right now"
+    user_query = "A funtion that gives greetings"
     print(f"Searching for: '{user_query}'")
     query_embedding = model.encode("search_query: " + user_query).tolist()
 
     results = collection.query(
         query_embeddings=[query_embedding],
         n_results=3,
-        include = ["document","metadata", "distances"]
+        include = ["documents","metadatas", "distances"]
     ) # can make the output more detailed look at docs
 
     print("\n> Search Results")
-    if not results or not results["documents"][0]:   #understand the structure of output
+    if not results or not results["documents"][0]:   # understand the structure of output
         print("No results found")
     else:
-        print(results)
-
+        for i, per_query_result in enumerate(results["documents"]):  # multiple queries multiple sublists inside the main list: power of chroma i suppose
+            print(f"\n--- Results for Query {i+1} ---")
+            for j, code_chunk in enumerate(per_query_result):
+                meta = results["metadatas"][i][j]
+                dist = results["distances"][i][j]
+                print(f"no.{j+1} \t Code chunk: \n {code_chunk}")
+                print(f"distance: {dist}")
+                print(f"meta_data: {meta}")
+                print("\n")
+                
 except Exception as e:
-    print(f"Error occured: {e}")
+    print(f"Error occured : {e}")
 
-print("execution complete!")
+print("execution completed.")
